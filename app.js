@@ -55,10 +55,14 @@ async function saveState() {
 }
 async function loadState() {
   if (currentUser) {
-    const doc = await db.collection('users').doc(currentUser.uid).get();
-    if (doc.exists) {
-      state = doc.data();
-      return true;
+    try {
+      const doc = await db.collection('users').doc(currentUser.uid).get();
+      if (doc.exists) {
+        state = doc.data();
+        return true;
+      }
+    } catch(e) {
+      console.error("Error loading from cloud (might be Firestore Rules):", e);
     }
   }
   return false;
