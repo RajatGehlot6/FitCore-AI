@@ -45,27 +45,41 @@ let currentView = {
   selectedExercise: null
 };
 
-// Load/Save using Firestore
+// Load/Save using Firestore and LocalStorage
 async function saveState() {
+  // Always save locally so the app works instantly
+  localStorage.setItem('fitcore_state', JSON.stringify(state));
+  
   if (currentUser) {
     try {
       await db.collection('users').doc(currentUser.uid).set(state);
-    } catch(e) { console.error("Error saving to cloud:", e); }
+    } catch(e) { 
+      console.error("Error saving to cloud:", e); 
+    }
   }
 }
+
 async function loadState() {
+  // First try to load from local storage for instant loading
+  const saved = localStorage.getItem('fitcore_state');
+  if (saved) {
+    state = JSON.parse(saved);
+  }
+  
   if (currentUser) {
     try {
       const doc = await db.collection('users').doc(currentUser.uid).get();
       if (doc.exists) {
-        state = doc.data();
+        state = doc.data(); // Cloud overrides local
+        localStorage.setItem('fitcore_state', JSON.stringify(state));
         return true;
       }
     } catch(e) {
-      console.error("Error loading from cloud (might be Firestore Rules):", e);
+      console.error("Error loading from cloud:", e);
     }
   }
-  return false;
+  
+  return saved ? true : false;
 }
 
 function getTodayKey() {
