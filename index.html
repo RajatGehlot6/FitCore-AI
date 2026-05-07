@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitCore AI — Your Personal Fitness Coach</title>
+<meta name="description" content="AI-powered fitness tracking for water, calories, workouts and progress">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<link rel="apple-touch-icon" href="logo.png">
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<!-- Animated BG -->
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<!-- AUTH OVERLAY -->
+<div id="authOverlay" class="onboarding-overlay">
+  <div class="onboarding-card">
+    <div class="ob-icon">🔐</div>
+    <h1>Welcome to <span class="gradient-text">FitCore AI</span></h1>
+    <p id="authMessage">Log in to sync your data to the cloud.</p>
+    
+    <div style="margin-top:20px; display:flex; flex-direction:column; gap:12px;">
+      <input type="email" id="authEmail" class="ob-input" placeholder="Email Address">
+      <input type="password" id="authPassword" class="ob-input" placeholder="Password">
+      
+      <button class="btn-primary" id="btnAuthAction" onclick="handleAuth()">Log In / Register</button>
+      <div id="authError" style="color:var(--r); font-size:0.9em; margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="onboarding" class="onboarding-overlay hidden">
+  <div class="onboarding-card">
+    <div class="ob-progress-bar"><div class="ob-progress-fill" id="obProgressFill"></div></div>
+    <!-- Step 1 -->
+    <div class="ob-step active" id="step1">
+      <div class="ob-icon">💪</div>
+      <h1>Welcome to <span class="gradient-text">FitCore AI</span></h1>
+      <p>Your AI-powered personal fitness coach. Let's set up your profile.</p>
+      <div class="form-group"><label>Your Name</label><input type="text" id="ob-name" placeholder="e.g. Rajat" /></div>
+      <div class="form-row">
+        <div class="form-group"><label>Age</label><input type="number" id="ob-age" placeholder="25" min="10" max="100" /></div>
+        <div class="form-group"><label>Gender</label>
+          <select id="ob-gender"><option value="male">Male</option><option value="female">Female</option></select>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="obNext(1)">Continue →</button>
+    </div>
+    <!-- Step 2 -->
+    <div class="ob-step" id="step2">
+      <div class="ob-icon">⚖️</div>
+      <h2>Your Body <span class="gradient-text">Measurements</span></h2>
+      <div class="form-row">
+        <div class="form-group"><label>Weight (kg)</label><input type="number" id="ob-weight" placeholder="70" step="0.1" /></div>
+        <div class="form-group"><label>Height (cm)</label><input type="number" id="ob-height" placeholder="175" /></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="obBack(2)">← Back</button>
+        <button class="btn-primary" onclick="obNext(2)">Continue →</button>
+      </div>
+    </div>
+    <!-- Step 3 -->
+    <div class="ob-step" id="step3">
+      <div class="ob-icon">🎯</div>
+      <h2>Your Fitness <span class="gradient-text">Goal</span></h2>
+      <div class="goal-grid">
+        <div class="goal-card" id="goal-lose" onclick="selectGoal('lose')">
+          <span class="goal-emoji">🔥</span><span>Lose Weight</span>
+        </div>
+        <div class="goal-card" id="goal-maintain" onclick="selectGoal('maintain')">
+          <span class="goal-emoji">⚡</span><span>Maintain</span>
+        </div>
+        <div class="goal-card" id="goal-gain" onclick="selectGoal('gain')">
+          <span class="goal-emoji">💪</span><span>Gain Muscle</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="obBack(3)">← Back</button>
+        <button class="btn-primary" onclick="obNext(3)">Continue →</button>
+      </div>
+    </div>
+    <!-- Step 4 -->
+    <div class="ob-step" id="step4">
+      <div class="ob-icon">🏃</div>
+      <h2>Activity <span class="gradient-text">Level</span></h2>
+      <div class="activity-list">
+        <div class="activity-item" id="act-sedentary" onclick="selectActivity('sedentary')">
+          <span>🛋️</span><div><strong>Sedentary</strong><small>Desk job, little or no exercise</small></div>
+        </div>
+        <div class="activity-item" id="act-light" onclick="selectActivity('light')">
+          <span>🚶</span><div><strong>Light</strong><small>Exercise 1–3 days/week</small></div>
+        </div>
+        <div class="activity-item" id="act-moderate" onclick="selectActivity('moderate')">
+          <span>🏋️</span><div><strong>Moderate</strong><small>Exercise 3–5 days/week</small></div>
+        </div>
+        <div class="activity-item" id="act-active" onclick="selectActivity('active')">
+          <span>🏃</span><div><strong>Very Active</strong><small>Hard exercise 6–7 days/week</small></div>
+        </div>
+        <div class="activity-item" id="act-extreme" onclick="selectActivity('extreme')">
+          <span>🔥</span><div><strong>Athlete</strong><small>2x training, physical job</small></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="obBack(4)">← Back</button>
+        <button class="btn-primary" onclick="obNext(4)">Continue →</button>
+      </div>
+    </div>
+    <!-- Step 5 -->
+    <div class="ob-step" id="step5">
+      <div class="ob-icon">🔔</div>
+      <h2>Enable <span class="gradient-text">Reminders</span></h2>
+      <p>Get notified to drink water, log meals, and hit the gym.</p>
+      <div class="notif-preview">
+        <div class="notif-item">💧 Hydration reminders every 2 hours</div>
+        <div class="notif-item">🏋️ Workout reminder at 6:00 PM</div>
+        <div class="notif-item">⚖️ Morning weigh-in at 7:00 AM</div>
+        <div class="notif-item">🍽️ Meal logging reminders</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="obBack(5)">← Back</button>
+        <button class="btn-primary" onclick="completeOnboarding()">Enable & Start 🚀</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DAILY CHECK-IN MODAL -->
+<div id="checkinModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h2>Good Morning! 🌟</h2>
+    <p id="checkinGreeting">Ready to crush today?</p>
+    <div class="form-group">
+      <label>Today's Weight (kg)</label>
+      <input type="number" id="checkin-weight" placeholder="Enter your weight" step="0.1" />
+    </div>
+    <div class="form-group">
+      <label>What are you hitting today?</label>
+      <div class="muscle-checklist" id="checkinMuscles"></div>
+    </div>
+    <button class="btn-primary" style="width:100%;margin-top:16px" onclick="saveCheckin()">Let's Go! 💪</button>
+    <button class="btn-ghost" onclick="skipCheckin()">Skip for now</button>
+  </div>
+</div>
+
+<!-- NOTIFICATION TOAST -->
+<div id="notifToast" class="notif-toast hidden">
+  <span id="notifIcon">💧</span>
+  <span id="notifMsg">Time to drink water!</span>
+  <button onclick="dismissToast()">×</button>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" class="main-app hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">FitCore AI</div>
+    </div>
+    <nav class="nav-menu">
+      <div class="nav-section">MAIN</div>
+      <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+        <span class="nav-icon">🏠</span><span>Dashboard</span>
+      </div>
+      <div class="nav-item" id="nav-water" onclick="showPage('water')">
+        <span class="nav-icon">💧</span><span>Water Tracker</span>
+      </div>
+      <div class="nav-item" id="nav-calories" onclick="showPage('calories')">
+        <span class="nav-icon">🔥</span><span>Calories</span>
+      </div>
+      <div class="nav-item" id="nav-workout" onclick="showPage('workout')">
+        <span class="nav-icon">🏋️</span><span>Workout</span>
+      </div>
+      <div class="nav-section" style="margin-top:16px">INSIGHTS</div>
+      <div class="nav-item" id="nav-progress" onclick="showPage('progress')">
+        <span class="nav-icon">📊</span><span>Progress</span>
+      </div>
+      <div class="nav-item" id="nav-ai" onclick="showPage('ai')">
+        <span class="nav-icon">🤖</span><span>AI Coach</span>
+      </div>
+    </nav>
+    <div style="margin: 0 20px 20px 20px;">
+      <button class="btn-secondary" style="width:100%; border-color:var(--r); color:var(--r);" onclick="handleLogout()">Log Out</button>
+    </div>
+    <div class="sidebar-profile" id="sidebarProfile" onclick="showPage('ai')"></div>
+  </aside>
+
+  <!-- Content -->
+  <main class="content-area" id="contentArea">
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title" id="dashGreeting">Good Morning! 👋</h1>
+          <p class="page-sub" id="dashAIMessage">Loading your personalized insights...</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-icon" onclick="showCheckin()" title="Daily Check-in">⚖️</button>
+          <div class="streak-badge" id="streakBadge">🔥 0 day streak</div>
+        </div>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="stats-grid">
+        <div class="stat-card card-3d" id="waterCard" onclick="showPage('water')">
+          <div class="stat-header"><span class="stat-label">Hydration</span><span class="stat-icon">💧</span></div>
+          <div class="stat-ring-wrap">
+            <svg class="progress-ring" viewBox="0 0 80 80">
+              <circle class="ring-bg" cx="40" cy="40" r="30"/>
+              <circle class="ring-fill ring-blue" cx="40" cy="40" r="30" id="waterRing"/>
+            </svg>
+            <div class="ring-center"><span id="waterPct">0%</span></div>
+          </div>
+          <div class="stat-detail"><span id="waterAmt">0</span> / <span id="waterGoalDisp">0</span> ml</div>
+        </div>
+
+        <div class="stat-card card-3d" id="calCard" onclick="showPage('calories')">
+          <div class="stat-header"><span class="stat-label">Calories</span><span class="stat-icon">🔥</span></div>
+          <div class="stat-ring-wrap">
+            <svg class="progress-ring" viewBox="0 0 80 80">
+              <circle class="ring-bg" cx="40" cy="40" r="30"/>
+              <circle class="ring-fill ring-orange" cx="40" cy="40" r="30" id="calRing"/>
+            </svg>
+            <div class="ring-center"><span id="calPct">0%</span></div>
+          </div>
+          <div class="stat-detail"><span id="calAmt">0</span> / <span id="calGoalDisp">0</span> kcal</div>
+        </div>
+
+        <div class="stat-card card-3d" id="workoutCard" onclick="showPage('workout')">
+          <div class="stat-header"><span class="stat-label">Workout</span><span class="stat-icon">🏋️</span></div>
+          <div class="workout-status" id="workoutStatus">
+            <div class="ws-icon" id="wsIcon">😴</div>
+            <div class="ws-text" id="wsText">Rest Day</div>
+            <div class="ws-sub" id="wsSub">Tap to log workout</div>
+          </div>
+        </div>
+
+        <div class="stat-card card-3d" id="weightCard" onclick="showCheckin()">
+          <div class="stat-header"><span class="stat-label">Weight</span><span class="stat-icon">⚖️</span></div>
+          <div class="weight-display">
+            <div class="weight-big" id="weightBig">-- kg</div>
+            <div class="weight-change" id="weightChange">Log today's weight</div>
+          </div>
+          <div class="bmi-badge" id="bmiBadge"></div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <h3 class="section-title">Quick Add</h3>
+        <div class="qa-row">
+          <button class="qa-btn qa-water" onclick="quickAddWater(250)">💧 +250ml</button>
+          <button class="qa-btn qa-water" onclick="quickAddWater(500)">💧 +500ml</button>
+          <button class="qa-btn qa-cal" onclick="showQuickMeal()">🍽️ Log Meal</button>
+          <button class="qa-btn qa-workout" onclick="showPage('workout')">🏋️ Log Set</button>
+        </div>
+      </div>
+
+      <!-- Today Summary -->
+      <div class="today-summary">
+        <h3 class="section-title">Today's Log</h3>
+        <div class="summary-grid" id="dashSummary"></div>
+      </div>
+    </div>
+
+    <!-- WATER PAGE -->
+    <div class="page" id="page-water">
+      <div class="page-header">
+        <div><h1 class="page-title">💧 Water Tracker</h1><p class="page-sub">Stay hydrated for peak performance</p></div>
+      </div>
+      <div class="water-hero">
+        <svg class="big-ring" viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="waterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#06b6d4"/>
+              <stop offset="100%" style="stop-color:#0ea5e9"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg-big" cx="100" cy="100" r="80"/>
+          <circle class="ring-fill-big" cx="100" cy="100" r="80" stroke="url(#waterGrad)" id="waterBigRing"/>
+        </svg>
+        <div class="big-ring-center">
+          <div class="big-ring-val" id="waterBigPct">0%</div>
+          <div class="big-ring-label" id="waterBigAmt">0 ml</div>
+        </div>
+      </div>
+      <div class="water-btns">
+        <button class="water-add-btn" onclick="addWater(250)">+250 ml</button>
+        <button class="water-add-btn" onclick="addWater(500)">+500 ml</button>
+        <button class="water-add-btn" onclick="addWater(750)">+750 ml</button>
+        <button class="water-add-btn" onclick="addWater(1000)">+1 L</button>
+      </div>
+      <div class="custom-water">
+        <input type="number" id="customWaterAmt" placeholder="Custom amount (ml)" />
+        <button class="btn-primary" onclick="addCustomWater()">Add</button>
+      </div>
+      <div class="water-log-title">Today's Intake</div>
+      <div id="waterLog" class="water-log"></div>
+    </div>
+
+    <!-- CALORIES PAGE -->
+    <div class="page" id="page-calories">
+      <div class="page-header">
+        <div><h1 class="page-title">🔥 Calorie Tracker</h1><p class="page-sub">Fuel your body right</p></div>
+      </div>
+      <div class="cal-overview">
+        <div class="cal-ring-wrap">
+          <svg class="big-ring" viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="calGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#f59e0b"/>
+                <stop offset="100%" style="stop-color:#f97316"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-bg-big" cx="100" cy="100" r="80"/>
+            <circle class="ring-fill-big" cx="100" cy="100" r="80" stroke="url(#calGrad)" id="calBigRing"/>
+          </svg>
+          <div class="big-ring-center">
+            <div class="big-ring-val" id="calBigPct">0%</div>
+            <div class="big-ring-label" id="calBigAmt">0 kcal</div>
+          </div>
+        </div>
+        <div class="macro-wrap">
+          <div class="macro-title">Macros Today</div>
+          <canvas id="macroChart" width="160" height="160"></canvas>
+          <div class="macro-legend" id="macroLegend"></div>
+        </div>
+      </div>
+      <div class="cal-goal-bar">
+        <div class="cg-item"><span>🎯 Goal</span><strong id="calGoalLabel">0 kcal</strong></div>
+        <div class="cg-item"><span>✅ Consumed</span><strong id="calConsumed">0 kcal</strong></div>
+        <div class="cg-item"><span>📉 Remaining</span><strong id="calRemaining">0 kcal</strong></div>
+        <div class="cg-item"><span>🏃 Burned</span><strong id="calBurned">0 kcal</strong></div>
+      </div>
+      <div class="add-meal-section">
+        <h3 class="section-title">Add Meal</h3>
+        <div class="meal-form">
+          <input type="text" id="mealName" placeholder="Meal name (e.g. Rice Bowl)" />
+          <input type="number" id="mealCal" placeholder="Calories (kcal)" />
+          <input type="number" id="mealProtein" placeholder="Protein (g)" />
+          <input type="number" id="mealCarbs" placeholder="Carbs (g)" />
+          <input type="number" id="mealFat" placeholder="Fat (g)" />
+          <button class="btn-primary" onclick="addMeal()">Add Meal</button>
+        </div>
+        <div class="meal-suggestions">
+          <div class="meal-chip" onclick="quickMeal('Chicken Breast',165,31,0,3.6)">🍗 Chicken Breast</div>
+          <div class="meal-chip" onclick="quickMeal('Rice (1 cup)',206,4,45,0.4)">🍚 Rice</div>
+          <div class="meal-chip" onclick="quickMeal('Eggs (2)',156,12,1,10)">🥚 2 Eggs</div>
+          <div class="meal-chip" onclick="quickMeal('Oats (100g)',389,17,66,7)">🥣 Oats</div>
+          <div class="meal-chip" onclick="quickMeal('Banana',89,1,23,0.3)">🍌 Banana</div>
+          <div class="meal-chip" onclick="quickMeal('Protein Shake',120,25,5,2)">🥤 Protein Shake</div>
+          <div class="meal-chip" onclick="quickMeal('Dal (1 cup)',198,14,34,1)">🍲 Dal</div>
+          <div class="meal-chip" onclick="quickMeal('Paneer (100g)',265,18,1.2,20)">🧀 Paneer</div>
+        </div>
+      </div>
+      <div class="meal-list-title">Today's Meals</div>
+      <div id="mealList" class="meal-list"></div>
+    </div>
+
+    <!-- WORKOUT PAGE -->
+    <div class="page" id="page-workout">
+      <div class="page-header">
+        <div><h1 class="page-title">🏋️ Workout Logger</h1><p class="page-sub">Track every rep, every set</p></div>
+      </div>
+      <div class="muscle-grid" id="muscleGrid"></div>
+      <div class="exercise-section" id="exerciseSection" style="display:none">
+        <div class="exercise-header">
+          <h3 id="selectedMuscleTitle">Exercises</h3>
+          <button class="btn-ghost" onclick="clearMuscle()">← Back</button>
+        </div>
+        <div class="exercise-list" id="exerciseList"></div>
+        <div class="set-form" id="setForm" style="display:none">
+          <h4 id="selectedExerciseName">Exercise</h4>
+          <div class="set-row">
+            <input type="number" id="setSets" placeholder="Sets" min="1" max="20" />
+            <input type="number" id="setReps" placeholder="Reps" min="1" max="100" />
+            <input type="number" id="setWeight" placeholder="Weight (kg)" step="0.5" />
+            <button class="btn-primary" onclick="logSet()">Log Set</button>
+          </div>
+        </div>
+      </div>
+      <div class="workout-log-section">
+        <h3 class="section-title">Today's Workout</h3>
+        <div id="workoutLog" class="workout-log"></div>
+        <div class="workout-stats" id="workoutStats"></div>
+      </div>
+    </div>
+
+    <!-- PROGRESS PAGE -->
+    <div class="page" id="page-progress">
+      <div class="page-header">
+        <div><h1 class="page-title">📊 Progress</h1><p class="page-sub">Your journey visualized</p></div>
+      </div>
+      <div class="progress-stats-row" id="progressStatsRow"></div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-title">Weight Trend (30 Days)</div>
+          <canvas id="weightChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Calories In vs Goal</div>
+          <canvas id="calChart"></canvas>
+        </div>
+      </div>
+      <div class="heatmap-section">
+        <div class="chart-title">Workout Frequency (Last 90 Days)</div>
+        <div id="workoutHeatmap" class="heatmap-grid"></div>
+        <div class="heatmap-legend"><span>Less</span><div class="hm-box hm-0"></div><div class="hm-box hm-1"></div><div class="hm-box hm-2"></div><div class="hm-box hm-3"></div><span>More</span></div>
+      </div>
+    </div>
+
+    <!-- AI COACH PAGE -->
+    <div class="page" id="page-ai">
+      <div class="page-header">
+        <div><h1 class="page-title">🤖 AI Coach</h1><p class="page-sub">Personalized insights just for you</p></div>
+      </div>
+      <div class="ai-report-card" id="aiReportCard"></div>
+      <div class="stats-breakdown" id="statsBreakdown"></div>
+      <div class="badges-section">
+        <h3 class="section-title">Achievements</h3>
+        <div id="badgesGrid" class="badges-grid"></div>
+      </div>
+      <div class="weekly-tips" id="weeklyTips"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Quick Meal Modal -->
+<div id="quickMealModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3>Quick Log Meal 🍽️</h3>
+    <div class="form-group"><label>Meal Name</label><input type="text" id="qmName" placeholder="What did you eat?" /></div>
+    <div class="form-group"><label>Calories (kcal)</label><input type="number" id="qmCal" placeholder="e.g. 350" /></div>
+    <div class="form-row">
+      <div class="form-group"><label>Protein (g)</label><input type="number" id="qmProtein" placeholder="0" /></div>
+      <div class="form-group"><label>Carbs (g)</label><input type="number" id="qmCarbs" placeholder="0" /></div>
+      <div class="form-group"><label>Fat (g)</label><input type="number" id="qmFat" placeholder="0" /></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeQuickMeal()">Cancel</button>
+      <button class="btn-primary" onclick="saveQuickMeal()">Add Meal</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
